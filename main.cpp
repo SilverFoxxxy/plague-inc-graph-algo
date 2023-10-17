@@ -59,15 +59,12 @@ public:
       int u = infected_event_queue_.front();
       infected_event_queue_.pop();
 
-      // cout << "u: " << u + 1 << endl;
-
       // Каждый сосед - потенциально новый заражённый
       for (int v: g_[u]) {
         if (infected_[v]) continue;
 
         infected_friend_count_[v]++;
 
-        // cout << "-> " << v + 1 << ' ' << infected_friend_count_[v] << endl;
         if (infected_friend_count_[v] >= 2) {
           InfectVertex(v);
         }
@@ -117,8 +114,12 @@ public:
   }
 
   void SaveState(vector <bool>& infected_backup, vector <int>& infected_friend_count_backup) {
-    infected_backup.resize(n_);
-    infected_friend_count_backup.resize(n_);
+    if (infected_backup.size() != n_) {
+      infected_backup.resize(n_);
+    }
+    if (infected_friend_count_backup.size() != n_) {
+      infected_friend_count_backup.resize(n_);
+    }
 
     for (int i = 0; i < n_; i++) {
       infected_backup[i] = infected_[i];
@@ -228,15 +229,15 @@ public:
       }
     }
 
-    for (int i = 0; i < n; i++) {
-      subgraph_mark_[component[i]] = -1;
-    }
-
     world.AddEdges(edges);
 
     for (int u: component) {
       int u0 = subgraph_mark_[u];
       world.infected_friend_count_[u0] = infected_friend_count_[u];
+    }
+
+    for (int i = 0; i < n; i++) {
+      subgraph_mark_[component[i]] = -1;
     }
   }
 
@@ -257,8 +258,11 @@ public:
     vector <int> cur_initiators;
     int edge_count = world.GetEdgeCount();
 
-    int one_iter = (component.size() + edge_count);
-    int iter_number = 1e8 / (one_iter) / (1 + 1e4 / component.size());
+    int one_iter = (component.size() + edge_count + 1);
+    int max_iter_number = min(one_iter * 10 + 5, 1000);
+    int iter_number = 5 + (int)1e8 / (one_iter) / (1 + 10000 / (component.size() + 1));
+
+    iter_number = min(iter_number, max_iter_number);
     world.RandomSearch(iter_number, cur_initiators);
 
     for (int i: cur_initiators) {
@@ -276,14 +280,6 @@ public:
     // Находим компоненты связности заражённых вершин
     vector <vector <int> > components;
     FindComponents(components);
-
-    // cout << "comp_n: " << components.size() << "\n";
-    // for (int i = 0; i < components.size(); i++) {
-    //   cout << "# " << i << endl;
-    //   for (int u: components[i]) {
-    //     cout << u + 1 << ' ';
-    //   } cout << "\n";
-    // }
 
     for (vector <int>& component: components) {
       FindComponentAnswer(component);
@@ -361,26 +357,21 @@ void solve() {
 
   world.FindAnswer();
 
-  // world.PrintGraph();
-
   vector <int>& ans = world.GetInitiators();
 
   cout << ans.size() << "\n";
+
+  sort(ans.begin(), ans.end());
 
   for (int u: ans) {
     cout << u + 1 << ' ';
   }
 
-  // vector <int> g[n];
-  // for (auto e: edges) {
-  //   int u = e.first;
-  //   int v = e.second;
-  //   g[u].push_back(v);
-  //   g[v].push_back(u);
-  // }
+  cout << "\n";
 }
 
 int main() {
+  // freopen("input.txt", "r", stdin);
   solve();
   return 0;
 }
